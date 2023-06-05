@@ -14,7 +14,7 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   init(
     isPresented: Binding<Bool>,
     position: Position,
-    animation: Animation = .spring(),
+    animation: Animation = .spring(response: 1),
     duration: Duration = .seconds(2),
     @ViewBuilder viewContent: () -> ContentView
   ) {
