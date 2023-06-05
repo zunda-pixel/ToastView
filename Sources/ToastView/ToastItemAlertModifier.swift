@@ -1,28 +1,30 @@
 //
-//  ToastAlertModifier.swift
+//  ToastItemAlertModifier.swift
 //
 
 import SwiftUI
 
-struct ToastAlertModifier<ContentView: View>: ViewModifier {
-  @Binding var isPresented: Bool
-  let viewContent: ContentView
+struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier {
+  @State var isPresented: Bool
+  @Binding var item: Item?
+  let viewContent: (Item) -> ContentView
   let position: Position
   let animation: Animation
   
   @StateObject var model: ToastAlertModifierModel
   
   init(
-    isPresented: Binding<Bool>,
+    item: Binding<Item?>,
     position: Position,
     animation: Animation,
     duration: Duration?,
-    @ViewBuilder viewContent: () -> ContentView
+    @ViewBuilder viewContent: @escaping (Item) -> ContentView
   ) {
-    self._isPresented = isPresented
+    self._item = item
+    self._isPresented = .init(wrappedValue: item.wrappedValue != nil)
     self.position = position
     self.animation = animation
-    self.viewContent = viewContent()
+    self.viewContent = viewContent
     self._model = .init(
       wrappedValue: .init(
         offset: .zero,
@@ -52,9 +54,12 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   
   func body(content: Content) -> some View {
     content
+      .onChange(of: item) { newItem in
+        isPresented = newItem != nil
+      }
       .overlay(alignment: position.alignment) {
-        if isPresented {
-          viewContent
+        if let item, isPresented {
+          viewContent(item)
             .scaleEffect(model.scale)
             .shadow(color: .secondary.opacity(model.shadowOpacity), radius: 10)
             .offset(model.offset)
@@ -87,16 +92,16 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
 
 extension View {
   @ViewBuilder
-  func toastAlert<Content: View>(
-    isPresented: Binding<Bool>,
+  func toastAlert<Item: Equatable, Content: View>(
+    item: Binding<Item?>,
     position: Position,
     animation: Animation = .spring(response: 1),
     duration: Duration?,
-    @ViewBuilder content: () -> Content
+    @ViewBuilder content: @escaping (Item) -> Content
   ) -> some View {
       self.modifier(
-        ToastAlertModifier(
-          isPresented: isPresented,
+        ToastItemAlertModifier(
+          item: item,
           position: position,
           animation: animation,
           duration: duration,
@@ -106,13 +111,13 @@ extension View {
   }
 }
 
-struct ToastAlertModifier_Preview: PreviewProvider {
+struct ToastItemAlertModifier_Preview: PreviewProvider {
   struct PencilView: View {
     var body: some View {
       VStack(spacing: 4) {
         Text("Apple Pencil")
           .bold()
-        
+
         HStack {
           Text("40%")
             .foregroundColor(.secondary)
@@ -123,46 +128,46 @@ struct ToastAlertModifier_Preview: PreviewProvider {
       }
     }
   }
-  
+
   struct VStack_Preview: View {
-    @State var isPresentedTop = false
-    @State var isPresentedBottom = false
-    
+    @State var topDate: Date?
+    @State var bottomDate: Date?
+
     var body: some View {
       VStack {
         Button("Top Button") {
-          isPresentedTop.toggle()
+          topDate = Date.now
         }
-        
+
         Button("Bottom Button") {
-          isPresentedBottom.toggle()
+          bottomDate = Date.now
         }
       }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toastAlert(
-          isPresented: $isPresentedTop,
+          item: $topDate,
           position: .top,
           duration: .seconds(1)
-        ) {
-          PencilView()
+        ) { date in
+          Text(date, format: .dateTime)
             .frame(maxWidth: 200, maxHeight: 60)
             .toastView()
         }
         .toastAlert(
-          isPresented: $isPresentedBottom,
+          item: $bottomDate,
           position: .bottom,
           duration: .seconds(1)
-        ) {
-          PencilView()
+        ) { date in
+          Text(date, format: .dateTime)
             .frame(maxWidth: 200, maxHeight: 60)
             .toastView()
         }
     }
   }
-  
+
   struct Navigation_Preview: View {
     @State var isPresented = false
-    
+
     var body: some View {
       NavigationStack {
         List {
@@ -183,11 +188,11 @@ struct ToastAlertModifier_Preview: PreviewProvider {
       }
     }
   }
-  
+
   static var previews: some View {
     VStack_Preview()
       .previewDisplayName("VStack")
-    
+
     Navigation_Preview()
       .previewDisplayName("NavigationStack")
   }
