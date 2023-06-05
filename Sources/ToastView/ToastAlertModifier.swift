@@ -9,13 +9,13 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   let viewContent: ContentView
   let position: Position
   let animation: Animation
-  let duration: Duration
+  let duration: Duration?
   
   init(
     isPresented: Binding<Bool>,
     position: Position,
-    animation: Animation = .spring(response: 1),
-    duration: Duration = .seconds(2),
+    animation: Animation,
+    duration: Duration?,
     @ViewBuilder viewContent: () -> ContentView
   ) {
     self._isPresented = isPresented
@@ -35,9 +35,10 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
               .combined(with: .opacity)
             )
             .onTapGesture {
-              isPresented = false
+              isPresented.toggle()
             }
-            .task {
+            .task(id: isPresented) {
+              guard let duration else { return }
               try? await Task.sleep(for: duration)
               isPresented = false
             }
@@ -52,12 +53,16 @@ extension View {
   func toastAlert<Content: View>(
     isPresented: Binding<Bool>,
     position: Position,
+    animation: Animation = .spring(response: 1),
+    duration: Duration?,
     @ViewBuilder content: () -> Content
   ) -> some View {
       self.modifier(
         ToastAlertModifier(
           isPresented: isPresented,
           position: position,
+          animation: animation,
+          duration: duration,
           viewContent: content
         )
       )
@@ -93,7 +98,8 @@ struct ToastAlertModifier_Preview: PreviewProvider {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toastAlert(
           isPresented: $isPresented,
-          position: position
+          position: position,
+          duration: .seconds(1)
         ) {
           PencilView()
             .frame(maxWidth: 200, maxHeight: 60)
@@ -116,7 +122,8 @@ struct ToastAlertModifier_Preview: PreviewProvider {
       }
       .toastAlert(
         isPresented: $isPresented,
-        position: .top
+        position: .top,
+        duration: .seconds(1)
       ) {
         PencilView()
           .frame(maxWidth: 200, maxHeight: 60)
