@@ -10,6 +10,14 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   let position: Position
   let animation: Animation
   let duration: Duration?
+  @State var offset: CGSize = .zero
+  @State var isTouching = false
+  var shadowOpacity: CGFloat {
+    isTouching ? 0.3 : 0
+  }
+  var scale: CGFloat {
+    isTouching ? 1.05 : 1.0
+  }
   
   init(
     isPresented: Binding<Bool>,
@@ -25,26 +33,63 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
     self.viewContent = viewContent()
   }
   
+  var dragGesture: some Gesture {
+    DragGesture()
+      .onChanged { value in
+        self.isTouching = true
+        self.offset = value.translation
+      }
+      .onEnded { _ in
+        withAnimation(.spring()) {
+          self.offset = .zero
+        }
+        self.isTouching = false
+      }
+  }
+  
+  func dismiss() async {
+    guard let duration else { return }
+    try? await Task.sleep(for: duration)
+    if offset == .zero, !isTouching {
+      isPresented = false
+    }
+  }
+  
   func body(content: Content) -> some View {
     content
       .overlay(alignment: position.alignment) {
         if isPresented {
           viewContent
+            .scaleEffect(scale)
+            .shadow(color: .secondary.opacity(shadowOpacity), radius: 10)
+            .offset(offset)
+            .gesture(dragGesture)
             .transition(
               .move(edge: position.edge)
               .combined(with: .opacity)
             )
-            .onTapGesture {
-              isPresented.toggle()
+            ._onButtonGesture { pressing in
+              self.isTouching = pressing
+            } perform: {
+              isPresented = false
             }
             .task(id: isPresented) {
-              guard let duration else { return }
-              try? await Task.sleep(for: duration)
-              isPresented = false
+              await dismiss()
+            }
+            .task(id: offset) {
+              if offset == .zero {
+                await dismiss()
+              }
             }
         }
       }
       .animation(animation, value: isPresented)
+      .animation(.default, value: isTouching)
+      .onChange(of: isPresented) { newValue in
+        if !newValue {
+          offset = .zero
+        }
+      }
   }
 }
 
@@ -114,7 +159,7 @@ struct ToastAlertModifier_Preview: PreviewProvider {
         .toastAlert(
           isPresented: $isPresentedBottom,
           position: .bottom,
-          duration: .seconds(1)
+          duration: .seconds(2)
         ) {
           PencilView()
             .frame(maxWidth: 200, maxHeight: 60)
@@ -138,7 +183,7 @@ struct ToastAlertModifier_Preview: PreviewProvider {
       .toastAlert(
         isPresented: $isPresented,
         position: .top,
-        duration: .seconds(1)
+        duration: .seconds(2)
       ) {
         PencilView()
           .frame(maxWidth: 200, maxHeight: 60)
