@@ -169,8 +169,9 @@ struct ToastAlertModifier_Preview: PreviewProvider {
           Button("Button") {
             isPresented.toggle()
           }
-          .buttonStyle(.borderless)
+          .buttonStyle(.bordered)
         }
+        .listStyle(.plain)
       }
       .toastAlert(
         isPresented: $isPresented,

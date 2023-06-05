@@ -4,10 +4,12 @@
 
 import SwiftUI
 
-extension View {
-  public func toastView() -> some View {
-    self
-      .background(Color.systemBackground)
+struct ToastViewModifier: ViewModifier {
+  @Environment(\.colorScheme) var colorScheme
+  
+  func body(content: Content) -> some View {
+    content
+      .background(colorScheme == .dark ? .black : .white)
       .clipShape(Capsule())
       .shadow(
         color: Color.secondary.opacity(0.5),
@@ -16,12 +18,10 @@ extension View {
   }
 }
 
-private extension Color {
-#if os(macOS)
-  static let systemBackground = Color(nsColor: .controlBackgroundColor)
-#else
-  static let systemBackground = Color(uiColor: .systemBackground)
-#endif
+extension View {
+  public func toastView() -> some View {
+    self.modifier(ToastViewModifier())
+  }
 }
 
 struct ToastView_Preview: PreviewProvider {
@@ -46,6 +46,6 @@ struct ToastView_Preview: PreviewProvider {
         .frame(maxWidth: 200, maxHeight: 60)
         .toastView()
     }
-    .padding(100)
+    .padding(10)
   }
 }
