@@ -32,6 +32,7 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
     )
   }
   
+  #if !os(tvOS)
   var dragGesture: some Gesture {
     DragGesture(minimumDistance: 5)
       .onChanged { value in
@@ -49,6 +50,7 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
         }
       }
   }
+  #endif
   
   func body(content: Content) -> some View {
     content
@@ -58,7 +60,9 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
             .scaleEffect(model.scale)
             .shadow(color: .secondary.opacity(model.shadowOpacity), radius: 10)
             .offset(model.offset)
+            #if !os(tvOS)
             .gesture(dragGesture)
+            #endif
             .transition(
               .move(edge: position.edge)
               .combined(with: .opacity)

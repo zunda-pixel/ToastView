@@ -34,6 +34,7 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
     )
   }
   
+  #if !os(tvOS)
   var dragGesture: some Gesture {
     DragGesture(minimumDistance: 5)
       .onChanged { value in
@@ -51,6 +52,7 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
         }
       }
   }
+  #endif
   
   func body(content: Content) -> some View {
     content
@@ -63,7 +65,9 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
             .scaleEffect(model.scale)
             .shadow(color: .secondary.opacity(model.shadowOpacity), radius: 10)
             .offset(model.offset)
+            #if !os(tvOS)
             .gesture(dragGesture)
+            #endif
             .transition(
               .move(edge: position.edge)
               .combined(with: .opacity)
@@ -174,7 +178,7 @@ struct ToastItemAlertModifier_Preview: PreviewProvider {
           Button("Button") {
             isPresented.toggle()
           }
-          .buttonStyle(.borderless)
+          .buttonStyle(.automatic)
         }
       }
       .toastAlert(
