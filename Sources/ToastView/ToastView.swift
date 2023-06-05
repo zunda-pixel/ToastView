@@ -5,13 +5,14 @@
 import SwiftUI
 
 extension View {
-  func toastView() -> some View {
-    background(Color(uiColor: .systemBackground))
-    .clipShape(Capsule())
-    .shadow(
-      color: Color.secondary.opacity(0.5),
-      radius: 10
-    )
+  public func toastView() -> some View {
+    self
+      .background(Color.systemBackground)
+      .clipShape(Capsule())
+      .shadow(
+        color: Color.secondary.opacity(0.5),
+        radius: 10
+      )
   }
 }
 

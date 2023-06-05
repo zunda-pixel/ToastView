@@ -90,7 +90,7 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
   }
 }
 
-extension View {
+public extension View {
   @ViewBuilder
   func toastAlert<Item: Equatable, Content: View>(
     item: Binding<Item?>,

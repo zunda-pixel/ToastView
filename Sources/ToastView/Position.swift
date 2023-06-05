@@ -4,7 +4,7 @@
 
 import SwiftUI
 
-enum Position {
+public enum Position {
   case top
   case bottom
   

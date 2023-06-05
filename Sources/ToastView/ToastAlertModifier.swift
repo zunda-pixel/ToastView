@@ -6,7 +6,7 @@ import SwiftUI
 
 struct ToastAlertModifier<ContentView: View>: ViewModifier {
   @Binding var isPresented: Bool
-  let viewContent: ContentView
+  let viewContent: () -> ContentView
   let position: Position
   let animation: Animation
   
@@ -17,12 +17,12 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
     position: Position,
     animation: Animation,
     duration: Duration?,
-    @ViewBuilder viewContent: () -> ContentView
+    @ViewBuilder viewContent: @escaping () -> ContentView
   ) {
     self._isPresented = isPresented
     self.position = position
     self.animation = animation
-    self.viewContent = viewContent()
+    self.viewContent = viewContent
     self._model = .init(
       wrappedValue: .init(
         offset: .zero,
@@ -54,7 +54,7 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
     content
       .overlay(alignment: position.alignment) {
         if isPresented {
-          viewContent
+          viewContent()
             .scaleEffect(model.scale)
             .shadow(color: .secondary.opacity(model.shadowOpacity), radius: 10)
             .offset(model.offset)
@@ -85,14 +85,14 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   }
 }
 
-extension View {
+public extension View {
   @ViewBuilder
   func toastAlert<Content: View>(
     isPresented: Binding<Bool>,
     position: Position,
     animation: Animation = .spring(response: 1),
     duration: Duration?,
-    @ViewBuilder content: () -> Content
+    @ViewBuilder content: @escaping () -> Content
   ) -> some View {
       self.modifier(
         ToastAlertModifier(
