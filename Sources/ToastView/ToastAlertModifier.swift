@@ -87,18 +87,33 @@ struct ToastAlertModifier_Preview: PreviewProvider {
     }
   }
   
-  struct Preview: View {
-    let position: Position
-    @State var isPresented = false
+  struct VStack_Preview: View {
+    @State var isPresentedTop = false
+    @State var isPresentedBottom = false
     
     var body: some View {
-      Button("Button") {
-        isPresented.toggle()
+      VStack {
+        Button("Top Button") {
+          isPresentedTop.toggle()
+        }
+        
+        Button("Bottom Button") {
+          isPresentedBottom.toggle()
+        }
       }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toastAlert(
-          isPresented: $isPresented,
-          position: position,
+          isPresented: $isPresentedTop,
+          position: .top,
+          duration: .seconds(1)
+        ) {
+          PencilView()
+            .frame(maxWidth: 200, maxHeight: 60)
+            .toastView()
+        }
+        .toastAlert(
+          isPresented: $isPresentedBottom,
+          position: .bottom,
           duration: .seconds(1)
         ) {
           PencilView()
@@ -133,10 +148,7 @@ struct ToastAlertModifier_Preview: PreviewProvider {
   }
   
   static var previews: some View {
-    VStack {
-      Preview(position: .top)
-      Preview(position: .bottom)
-    }
+    VStack_Preview()
       .previewDisplayName("VStack")
     
     Navigation_Preview()
