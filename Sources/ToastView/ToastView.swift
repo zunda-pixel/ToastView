@@ -16,6 +16,14 @@ extension View {
   }
 }
 
+private extension Color {
+#if os(macOS)
+  static let systemBackground = Color(nsColor: .controlBackgroundColor)
+#else
+  static let systemBackground = Color(uiColor: .systemBackground)
+#endif
+}
+
 struct ToastView_Preview: PreviewProvider {
   struct ApplePencilView: View {
     var body: some View {
@@ -29,14 +37,15 @@ struct ToastView_Preview: PreviewProvider {
   }
   
   static var previews: some View {
-    ApplePencilView()
-      .frame(maxWidth: 200, maxHeight: 60)
-      .toastView()
-      .preferredColorScheme(.light)
+    VStack(spacing: 100) {
+      ApplePencilView()
+        .frame(maxWidth: 200, maxHeight: 60)
+        .toastView()
       
-    ApplePencilView()
-      .frame(maxWidth: 200, maxHeight: 60)
-      .toastView()
-      .preferredColorScheme(.dark)
+      ApplePencilView()
+        .frame(maxWidth: 200, maxHeight: 60)
+        .toastView()
+    }
+    .padding(100)
   }
 }
