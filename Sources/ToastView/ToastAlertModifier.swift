@@ -9,7 +9,8 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   let viewContent: () -> ContentView
   let position: Position
   let animation: Animation
-  
+  let duration: Duration?
+
   @StateObject var model: ToastAlertModifierModel
   
   init(
@@ -22,14 +23,24 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
     self._isPresented = isPresented
     self.position = position
     self.animation = animation
+    self.duration = duration
     self.viewContent = viewContent
     self._model = .init(
       wrappedValue: .init(
         offset: .zero,
-        isTouching: false,
-        duration: duration
+        isTouching: false
       )
     )
+  }
+  
+  func dismiss() {
+    guard let duration else { return }
+    
+    model.task = Task {
+      await self.model.dismiss(duration: duration) {
+        isPresented = false
+      }
+    }
   }
   
   #if !os(tvOS)
@@ -43,11 +54,7 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
       .onEnded { _ in
         model.isTouching = false
         model.offset = .zero
-        model.task = Task {
-          await self.model.dismiss {
-            isPresented = false
-          }
-        }
+        dismiss()
       }
   }
   #endif
@@ -80,11 +87,7 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
       .task(id: isPresented) {
         model.task?.cancel()
         guard isPresented else { return }
-        model.task = Task {
-          await model.dismiss {
-            isPresented = false
-          }
-        }
+        dismiss()
       }
   }
 }

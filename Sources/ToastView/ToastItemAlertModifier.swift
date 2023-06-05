@@ -10,6 +10,7 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
   let viewContent: (Item) -> ContentView
   let position: Position
   let animation: Animation
+  let duration: Duration?
   
   @StateObject var model: ToastAlertModifierModel
   
@@ -24,14 +25,24 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
     self._isPresented = .init(wrappedValue: item.wrappedValue != nil)
     self.position = position
     self.animation = animation
+    self.duration = duration
     self.viewContent = viewContent
     self._model = .init(
       wrappedValue: .init(
         offset: .zero,
-        isTouching: false,
-        duration: duration
+        isTouching: false
       )
     )
+  }
+  
+  func dismiss() {
+    guard let duration else { return }
+    
+    model.task = Task {
+      await self.model.dismiss(duration: duration) {
+        isPresented = false
+      }
+    }
   }
   
   #if !os(tvOS)
@@ -45,11 +56,7 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
       .onEnded { _ in
         model.isTouching = false
         model.offset = .zero
-        model.task = Task {
-          await self.model.dismiss {
-            isPresented = false
-          }
-        }
+        dismiss()
       }
   }
   #endif
@@ -85,11 +92,7 @@ struct ToastItemAlertModifier<Item: Equatable, ContentView: View>: ViewModifier 
       .task(id: isPresented) {
         model.task?.cancel()
         guard isPresented else { return }
-        model.task = Task {
-          await model.dismiss {
-            isPresented = false
-          }
-        }
+        dismiss()
       }
   }
 }
@@ -184,7 +187,7 @@ struct ToastItemAlertModifier_Preview: PreviewProvider {
       .toastAlert(
         isPresented: $isPresented,
         position: .top,
-        duration: .seconds(2)
+        duration: nil
       ) {
         PencilView()
           .frame(maxWidth: 200, maxHeight: 60)
