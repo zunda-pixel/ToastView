@@ -9,15 +9,8 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   let viewContent: ContentView
   let position: Position
   let animation: Animation
-  let duration: Duration?
-  @State var offset: CGSize = .zero
-  @State var isTouching = false
-  var shadowOpacity: CGFloat {
-    isTouching ? 0.3 : 0
-  }
-  var scale: CGFloat {
-    isTouching ? 1.05 : 1.0
-  }
+  
+  @StateObject var model: ToastAlertModifierModel
   
   init(
     isPresented: Binding<Bool>,
@@ -29,30 +22,32 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
     self._isPresented = isPresented
     self.position = position
     self.animation = animation
-    self.duration = duration
     self.viewContent = viewContent()
+    self._model = .init(
+      wrappedValue: .init(
+        offset: .zero,
+        isTouching: false,
+        duration: duration
+      )
+    )
   }
   
   var dragGesture: some Gesture {
-    DragGesture()
+    DragGesture(minimumDistance: 0)
       .onChanged { value in
-        self.isTouching = true
-        self.offset = value.translation
+        model.task?.cancel()
+        model.isTouching = true
+        model.offset = value.translation
       }
       .onEnded { _ in
-        withAnimation(.spring()) {
-          self.offset = .zero
+        model.isTouching = false
+        model.offset = .zero
+        model.task = Task {
+          await self.model.dismiss {
+            isPresented = false
+          }
         }
-        self.isTouching = false
       }
-  }
-  
-  func dismiss() async {
-    guard let duration else { return }
-    try? await Task.sleep(for: duration)
-    if offset == .zero, !isTouching {
-      isPresented = false
-    }
   }
   
   func body(content: Content) -> some View {
@@ -60,34 +55,34 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
       .overlay(alignment: position.alignment) {
         if isPresented {
           viewContent
-            .scaleEffect(scale)
-            .shadow(color: .secondary.opacity(shadowOpacity), radius: 10)
-            .offset(offset)
+            .scaleEffect(model.scale)
+            .shadow(color: .secondary.opacity(model.shadowOpacity), radius: 10)
+            .offset(model.offset)
             .gesture(dragGesture)
             .transition(
               .move(edge: position.edge)
               .combined(with: .opacity)
             )
             ._onButtonGesture { pressing in
-              self.isTouching = pressing
+              model.isTouching = pressing
             } perform: {
-              isPresented = false
-            }
-            .task(id: isPresented) {
-              await dismiss()
-            }
-            .task(id: offset) {
-              if offset == .zero {
-                await dismiss()
+              model.task = Task {
+                await model.dismiss {
+                  isPresented = false
+                }
               }
             }
         }
       }
       .animation(animation, value: isPresented)
-      .animation(.default, value: isTouching)
-      .onChange(of: isPresented) { newValue in
-        if !newValue {
-          offset = .zero
+      .animation(.default, value: model.isTouching)
+      .task(id: isPresented) {
+        model.task?.cancel()
+        guard isPresented else { return }
+        model.task = Task {
+          await model.dismiss {
+            isPresented = false
+          }
         }
       }
   }
@@ -159,7 +154,7 @@ struct ToastAlertModifier_Preview: PreviewProvider {
         .toastAlert(
           isPresented: $isPresentedBottom,
           position: .bottom,
-          duration: .seconds(2)
+          duration: .seconds(1)
         ) {
           PencilView()
             .frame(maxWidth: 200, maxHeight: 60)
