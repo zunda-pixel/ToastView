@@ -12,7 +12,6 @@ extension View {
       color: Color.secondary.opacity(0.5),
       radius: 10
     )
-    .transition(.move(edge: .top).combined(with: .opacity))
   }
 }
 
