@@ -9,16 +9,19 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
   let viewContent: ContentView
   let position: Position
   let animation: Animation
+  let duration: Duration
   
   init(
     isPresented: Binding<Bool>,
     position: Position,
     animation: Animation = .spring(),
+    duration: Duration = .seconds(2),
     @ViewBuilder viewContent: () -> ContentView
   ) {
     self._isPresented = isPresented
     self.position = position
     self.animation = animation
+    self.duration = duration
     self.viewContent = viewContent()
   }
   
@@ -35,7 +38,7 @@ struct ToastAlertModifier<ContentView: View>: ViewModifier {
               isPresented = false
             }
             .task {
-              try? await Task.sleep(for: .seconds(2))
+              try? await Task.sleep(for: duration)
               isPresented = false
             }
         }
@@ -62,11 +65,8 @@ extension View {
 }
 
 struct ToastAlertModifier_Preview: PreviewProvider {
-  struct Preview: View {
-    let position: Position
-    @State var isPresented = false
-    
-    var pencilView: some View {
+  struct PencilView: View {
+    var body: some View {
       VStack(spacing: 4) {
         Text("Apple Pencil")
           .bold()
@@ -80,6 +80,11 @@ struct ToastAlertModifier_Preview: PreviewProvider {
         }
       }
     }
+  }
+  
+  struct Preview: View {
+    let position: Position
+    @State var isPresented = false
     
     var body: some View {
       Button("Button") {
@@ -90,10 +95,33 @@ struct ToastAlertModifier_Preview: PreviewProvider {
           isPresented: $isPresented,
           position: position
         ) {
-          pencilView
+          PencilView()
             .frame(maxWidth: 200, maxHeight: 60)
             .toastView()
         }
+    }
+  }
+  
+  struct Navigation_Preview: View {
+    @State var isPresented = false
+    
+    var body: some View {
+      NavigationStack {
+        List {
+          Button("Button") {
+            isPresented.toggle()
+          }
+          .buttonStyle(.borderless)
+        }
+      }
+      .toastAlert(
+        isPresented: $isPresented,
+        position: .top
+      ) {
+        PencilView()
+          .frame(maxWidth: 200, maxHeight: 60)
+          .toastView()
+      }
     }
   }
   
@@ -102,5 +130,9 @@ struct ToastAlertModifier_Preview: PreviewProvider {
       Preview(position: .top)
       Preview(position: .bottom)
     }
+      .previewDisplayName("VStack")
+    
+    Navigation_Preview()
+      .previewDisplayName("NavigationStack")
   }
 }
