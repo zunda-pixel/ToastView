@@ -18,12 +18,9 @@ let package = Package(
       targets: ["ToastView"]
     ),
   ],
-  dependencies: [
-  ],
   targets: [
     .target(
-      name: "ToastView",
-      dependencies: []
+      name: "ToastView"
     ),
   ]
 )
